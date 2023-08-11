@@ -13,7 +13,7 @@ public enum OpenAIError: Error {
 public class OpenAISwift {
     fileprivate let config: Config
     fileprivate let handler = ServerSentEventsHandler()
-
+    
     /// Configuration object for the client
     public struct Config {
         
@@ -35,7 +35,7 @@ public class OpenAISwift {
                   endpointPrivider: OpenAIEndpointProvider(source: .openAI),
                   session: .shared,
                   authorizeRequest: { request in
-                    request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
             })
         }
     }
@@ -148,6 +148,7 @@ extension OpenAISwift {
                          presencePenalty: Double? = 0,
                          frequencyPenalty: Double? = 0,
                          logitBias: [Int: Double]? = nil,
+                         functions: [Function]? = nil,
                          completionHandler: @escaping (Result<OpenAI<MessageResult>, OpenAIError>) -> Void) {
         let endpoint = OpenAIEndpointProvider.API.chat
         let body = ChatConversation(user: user,
@@ -161,8 +162,9 @@ extension OpenAISwift {
                                     presencePenalty: presencePenalty,
                                     frequencyPenalty: frequencyPenalty,
                                     logitBias: logitBias,
-                                    stream: false)
-
+                                    stream: false,
+                                    functions: functions)
+        
         let request = prepareRequest(endpoint, body: body)
         
         makeRequest(request: request) { result in
@@ -197,19 +199,19 @@ extension OpenAISwift {
         let endpoint = OpenAIEndpointProvider.API.embeddings
         let body = EmbeddingsInput(input: input,
                                    model: model.modelName)
-
+        
         let request = prepareRequest(endpoint, body: body)
         makeRequest(request: request) { result in
             switch result {
-                case .success(let success):
-                    do {
-                        let res = try JSONDecoder().decode(OpenAI<EmbeddingResult>.self, from: success)
-                        completionHandler(.success(res))
-                    } catch {
-                        completionHandler(.failure(.decodingError(error: error)))
-                    }
-                case .failure(let failure):
-                    completionHandler(.failure(.genericError(error: failure)))
+            case .success(let success):
+                do {
+                    let res = try JSONDecoder().decode(OpenAI<EmbeddingResult>.self, from: success)
+                    completionHandler(.success(res))
+                } catch {
+                    completionHandler(.failure(.decodingError(error: error)))
+                }
+            case .failure(let failure):
+                completionHandler(.failure(.genericError(error: failure)))
             }
         }
     }
@@ -240,6 +242,7 @@ extension OpenAISwift {
                                   presencePenalty: Double? = 0,
                                   frequencyPenalty: Double? = 0,
                                   logitBias: [Int: Double]? = nil,
+                                  functions: [Function]? = nil,
                                   onEventReceived: ((Result<OpenAI<StreamMessageResult>, OpenAIError>) -> Void)? = nil,
                                   onComplete: (() -> Void)? = nil) {
         let endpoint = OpenAIEndpointProvider.API.chat
@@ -254,14 +257,16 @@ extension OpenAISwift {
                                     presencePenalty: presencePenalty,
                                     frequencyPenalty: frequencyPenalty,
                                     logitBias: logitBias,
-                                    stream: true)
+                                    stream: true,
+                                    functions: functions
+        )
         let request = prepareRequest(endpoint, body: body)
         handler.onEventReceived = onEventReceived
         handler.onComplete = onComplete
         handler.connect(with: request)
     }
-
-
+    
+    
     /// Send a Image generation request to the OpenAI API
     /// - Parameters:
     ///   - prompt: The Text Prompt
@@ -273,19 +278,19 @@ extension OpenAISwift {
         let endpoint = OpenAIEndpointProvider.API.images
         let body = ImageGeneration(prompt: prompt, n: numImages, size: size, user: user)
         let request = prepareRequest(endpoint, body: body)
-
+        
         makeRequest(request: request) { result in
             switch result {
-                case .success(let success):
-                    do {
-                        let res = try JSONDecoder().decode(OpenAI<UrlResult>.self, from: success)
-                        completionHandler(.success(res))
-                    } catch {
-                        completionHandler(.failure(.decodingError(error: error)))
-                    }
-                case .failure(let failure):
-                    completionHandler(.failure(.genericError(error: failure)))
+            case .success(let success):
+                do {
+                    let res = try JSONDecoder().decode(OpenAI<UrlResult>.self, from: success)
+                    completionHandler(.success(res))
+                } catch {
+                    completionHandler(.failure(.decodingError(error: error)))
                 }
+            case .failure(let failure):
+                completionHandler(.failure(.genericError(error: failure)))
+            }
         }
     }
     
@@ -381,7 +386,8 @@ extension OpenAISwift {
                          maxTokens: Int? = nil,
                          presencePenalty: Double? = 0,
                          frequencyPenalty: Double? = 0,
-                         logitBias: [Int: Double]? = nil) async throws -> OpenAI<MessageResult> {
+                         logitBias: [Int: Double]? = nil,
+                         functions: [Function]? = nil) async throws -> OpenAI<MessageResult> {
         return try await withCheckedThrowingContinuation { continuation in
             sendChat(with: messages,
                      model: model,
@@ -393,10 +399,11 @@ extension OpenAISwift {
                      maxTokens: maxTokens,
                      presencePenalty: presencePenalty,
                      frequencyPenalty: frequencyPenalty,
-                     logitBias: logitBias) { result in
+                     logitBias: logitBias,
+                     functions: functions) { result in
                 switch result {
-                    case .success: continuation.resume(with: result)
-                    case .failure(let failure): continuation.resume(throwing: failure)
+                case .success: continuation.resume(with: result)
+                case .failure(let failure): continuation.resume(throwing: failure)
                 }
             }
         }
@@ -450,7 +457,7 @@ extension OpenAISwift {
                 }
         }
     }
-
+    
     /// Send a Embeddings request to the OpenAI API
     /// - Parameters:
     ///   - input: The Input For Example "The food was delicious and the waiter..."

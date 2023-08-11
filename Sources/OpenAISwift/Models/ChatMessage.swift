@@ -29,6 +29,16 @@ extension ChatMessage: Identifiable, Equatable {
     }
 }
 
+public struct FunctionCall: Codable {
+    public let name: String
+    public let arguments: String
+
+    public init(name: String, arguments: String) {
+        self.name = name
+        self.arguments = arguments
+    }
+}
+
 /// A structure that represents a single message in a chat conversation.
 public struct ChatMessage: Codable {
     // uuid to conform to Identifiable protocol
@@ -38,13 +48,47 @@ public struct ChatMessage: Codable {
     /// The content of the message.
     public let content: String?
 
+    /// The function call.
+        public let functionCall: FunctionCall?
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case role
+            case content
+            case functionCall = "function_call"
+        }
+
     /// Creates a new chat message with a given role and content.
     /// - Parameters:
     ///   - role: The role of the sender of the message.
     ///   - content: The content of the message.
-    public init(role: ChatRole, content: String) {
-        self.role = role
-        self.content = content
+    public init(role: ChatRole, content: String? = nil, functionCall: FunctionCall? = nil) {
+            self.role = role
+            self.content = content
+            self.functionCall = functionCall
+        }
+    
+    
+}
+
+public extension ChatMessage {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        //id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        role = try container.decodeIfPresent(ChatRole.self, forKey: .role)
+        content = try container.decodeIfPresent(String.self, forKey: .content)
+        functionCall = try container.decodeIfPresent(FunctionCall.self, forKey: .functionCall)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        if let role = role {
+            try container.encode(role, forKey: .role)
+        }
+        try container.encode(content, forKey: .content)
+        if let functionCall = functionCall {
+            try container.encode(functionCall, forKey: .functionCall)
+        }
     }
 }
 
@@ -86,6 +130,8 @@ public struct ChatConversation: Encodable {
     /// If you're generating long completions, waiting for the response can take many seconds. To get responses sooner, you can 'stream' the completion as it's being generated. This allows you to start printing or processing the beginning of the completion before the full completion is finished.
     /// https://github.com/openai/openai-cookbook/blob/main/examples/How_to_stream_completions.ipynb
     let stream: Bool?
+    
+    let functions: [Function]?
 
     enum CodingKeys: String, CodingKey {
         case user
@@ -100,6 +146,7 @@ public struct ChatConversation: Encodable {
         case frequencyPenalty = "frequency_penalty"
         case logitBias = "logit_bias"
         case stream
+        case functions
     }
 }
 
