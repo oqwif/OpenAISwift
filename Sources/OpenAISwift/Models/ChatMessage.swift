@@ -27,7 +27,7 @@ extension ChatMessage: Identifiable, Equatable {
     public static func == (lhs: ChatMessage, rhs: ChatMessage) -> Bool {
         return lhs.id == rhs.id
     }
-}ç
+}
 
 /// A structure that represents a single message in a chat conversation.
 public struct ChatMessage: Codable {
