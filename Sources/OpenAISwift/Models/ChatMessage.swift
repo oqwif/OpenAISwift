@@ -17,10 +17,22 @@ public enum ChatRole: String, Codable {
     case assistant
 }
 
+extension ChatMessage: Identifiable, Equatable {
+    public var id: UUID {
+        return UUID()
+    }
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    public static func == (lhs: ChatMessage, rhs: ChatMessage) -> Bool {
+        return lhs.id == rhs.id
+    }
+}ç
+
 /// A structure that represents a single message in a chat conversation.
-public struct ChatMessage: Codable, Identifiable {
+public struct ChatMessage: Codable {
     // uuid to conform to Identifiable protocol
-    public var id = UUID()
+    //public var id = UUID()
     /// The role of the sender of the message.
     public let role: ChatRole?
     /// The content of the message.
