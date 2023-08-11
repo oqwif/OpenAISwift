@@ -28,7 +28,7 @@ extension ChatMessage: Identifiable, Equatable {
         return lhs.id == rhs.id
     }
 }
- 
+
 /// A structure that represents a single message in a chat conversation.
 public struct ChatMessage: Codable {
     // uuid to conform to Identifiable protocol
