@@ -29,15 +29,16 @@ public struct Function: Encodable {
 
 public struct Parameters: Encodable {
     public let type: String
-    public let properties: [String: Property]
-    public let required: [String]
+    public var properties: [String: Property]?
+    public var required: [String]?
 
-    public init(type: JSONType = .object, properties: [String: Property], required: [String]) {
+    public init(type: JSONType = .object, properties: [String: Property]? = nil, required: [String]? = nil) {
         self.type = type.rawValue
         self.properties = properties
         self.required = required
     }
 }
+
 
 public struct Property: Encodable {
     enum CodingKeys: String, CodingKey {
