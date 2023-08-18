@@ -36,6 +36,7 @@ public class OpenAISwift {
                   session: .shared,
                   authorizeRequest: { request in
                 request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+                request.timeoutInterval = 120.0 // set timeout to 60 seconds
             })
         }
     }
